@@ -1,0 +1,26 @@
+name: Build and Release Prism Zip
+
+on:
+  # Runs on pushes targeting the default branch
+  push:
+    branches: ["main"]
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Download packwiz installer bootstrap
+        run: |
+          mkdir -p prism/minecraft
+          curl -L -o prism/minecraft/packwiz-installer-bootstrap.jar https://github.com/packwiz/packwiz-installer-bootstrap/releases/latest/download/packwiz-installer-bootstrap.jar
+      - name: Zip prism directory
+        run: |
+          zip -r prism.zip prism
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: prism.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
