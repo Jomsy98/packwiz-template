@@ -18,13 +18,6 @@ jobs:
       - name: Zip prism directory
         run: |
           zip -r prism.zip prism
-      - name: Set version
-        run: |
-          if [ -z "${{ github.ref_name }}" ]; then
-            echo "version=0.0.0" >> $GITHUB_ENV
-          else
-            echo "version=${{ github.ref_name }}" >> $GITHUB_ENV
-          fi
       - name: Create GitHub Release
         uses: svenstaro/upload-release-action@v2
         with:
