@@ -5,6 +5,10 @@ on:
   push:
     branches: ["main"]
 
+# Set permissions required for creating releases
+permissions:
+  contents: write # This is required for creating releases and pushing tags
+
 jobs:
   build-release:
     runs-on: ubuntu-latest
