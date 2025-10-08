@@ -18,6 +18,21 @@ jobs:
       - name: Zip prism directory
         run: |
           zip -r prism.zip prism
+      - name: Get version from pack.toml
+        run: |
+          VERSION=$(grep '^version =' packwiz/pack.toml | head -n1 | cut -d'=' -f2 | tr -d ' "')
+          if [ -z "$VERSION" ]; then VERSION="0.0.0"; fi
+          echo "version=$VERSION" >> $GITHUB_ENV
+      - name: Create tag if missing
+        run: |
+          git fetch --tags
+          if ! git rev-parse "refs/tags/$version" >/dev/null 2>&1; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag "$version"
+            git push origin "$version"
+          fi
+          
       - name: Create GitHub Release
         uses: svenstaro/upload-release-action@v2
         with:
