@@ -19,6 +19,17 @@ jobs:
         run: |
           mkdir -p prism/minecraft
           curl -L -o prism/minecraft/packwiz-installer-bootstrap.jar https://github.com/packwiz/packwiz-installer-bootstrap/releases/latest/download/packwiz-installer-bootstrap.jar
+      - name: Replace placeholders in files
+        run: |
+          # Extract repository name and owner from GITHUB_REPOSITORY
+          REPO_NAME=$(echo $GITHUB_REPOSITORY | cut -d '/' -f 2)
+          REPO_OWNER=$(echo $GITHUB_REPOSITORY | cut -d '/' -f 1)
+          
+          # Replace placeholders in all files in prism directory
+          find prism -type f -exec sed -i "s/\[REPO\]/$REPO_NAME/g" {} \;
+          find prism -type f -exec sed -i "s/\[USERNAME\]/$REPO_OWNER/g" {} \;
+          
+          echo "Replaced [REPO] with $REPO_NAME and [USERNAME] with $REPO_OWNER in all files"
       - name: Zip prism directory
         run: |
           zip -r prism.zip prism
