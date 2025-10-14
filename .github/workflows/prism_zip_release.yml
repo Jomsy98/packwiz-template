@@ -19,48 +19,51 @@ jobs:
         run: |
           mkdir -p prism/minecraft
           curl -L -o prism/minecraft/packwiz-installer-bootstrap.jar https://github.com/packwiz/packwiz-installer-bootstrap/releases/latest/download/packwiz-installer-bootstrap.jar
-      - name: Replace placeholders in files
+
+      - name: Copy logo into prism as modpack.png
         run: |
-          # Extract repository name and owner from GITHUB_REPOSITORY
-          REPO_NAME=$(echo $GITHUB_REPOSITORY | cut -d '/' -f 2)
-          REPO_OWNER=$(echo $GITHUB_REPOSITORY | cut -d '/' -f 1)
-          
-          # Replace placeholders in all files in prism directory
-          find prism -type f -exec sed -i "s/\[REPO\]/$REPO_NAME/g" {} \;
-          find prism -type f -exec sed -i "s/\[USERNAME\]/$REPO_OWNER/g" {} \;
-          
-          echo "Replaced [REPO] with $REPO_NAME and [USERNAME] with $REPO_OWNER in all files"
-      - name: Zip prism directory
-        run: |
-          zip -r prism.zip prism
+          # Copy repository root server-icon.png into prism as modpack.png (fallback to existing if missing)
+          if [ -f ./server-icon.png ]; then
+            cp ./server-icon.png ./prism/modpack.png
+            echo "Copied server-icon.png -> prism/modpack.png"
+          else
+            echo "server-icon.png not found in repo root; skipping copy"
+          fi
       - name: Get version from pack.toml
+        id: get_version
         run: |
           VERSION=$(grep '^version =' packwiz/pack.toml | head -n1 | cut -d'=' -f2 | tr -d ' "')
           if [ -z "$VERSION" ]; then VERSION="0.0.0"; fi
-          echo "version=$VERSION" >> $GITHUB_ENV
-      - name: Create tag if missing
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Zip prism directory
+        run: |
+          zip -r prism.zip prism
+
+      - name: Create or update tag for version
         run: |
           git fetch --tags
-          if ! git rev-parse "refs/tags/$version" >/dev/null 2>&1; then
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git tag "$version"
-            git push origin "$version"
-          fi
-          
+          # Force create/update tag pointing at current HEAD and push it
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          VERSION=${{ steps.get_version.outputs.version }}
+          echo "Creating/updating tag $VERSION"
+          git tag -f "$VERSION"
+          git push -f origin "refs/tags/$VERSION"
+
       - name: Delete existing release
         run: |
-          # Delete the release if it exists (ignoring errors if it doesn't)
-          gh release delete $version --yes || true
+          # Delete the release if it exists (ignore errors if it doesn't)
+          gh release delete "${{ steps.get_version.outputs.version }}" --yes || true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
+
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
         with:
-          tag_name: ${{ env.version }}
-          release_name: Release ${{ env.version }}
+          tag_name: ${{ steps.get_version.outputs.version }}
+          release_name: Release ${{ steps.get_version.outputs.version }}
           draft: false
           prerelease: false
         env:
