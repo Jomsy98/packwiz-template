@@ -11,7 +11,7 @@
     <div class="container">
       <header class="header">
         <div class="logo-wrap">
-          <img id="logoImg" alt="modpack logo" src="../prism/modpack.png" onerror="this.style.display='none'" />
+          <img id="logoImg" alt="modpack logo" src="./server-icon.png" onerror="this.onerror=null;this.src='prism/modpack.png'" />
         </div>
         <div>
           <h1 id="packName">[Modpack Name]</h1>
@@ -88,7 +88,7 @@
         async function loadMods(){
           const preview = document.getElementById('modsList');
           const modsError = document.getElementById('modsError');
-          const candidates = [ 'mods.json', './mods.json', './site/mods.json', 'site/mods.json' ];
+          const candidates = [ './mods.json', 'mods.json', './mods/mods.json', './site/mods.json', 'site/mods.json' ];
           let lastErr = null;
           for(const path of candidates){
             try{
@@ -112,7 +112,7 @@
             }
           }
           // if we get here, all attempts failed
-          preview.innerHTML = '<li class="small">No mods list available. Add site/mods.json to populate this list.</li>';
+          preview.innerHTML = '<li class="small">No mods list available. Add mods.json to populate this list.</li>';
           if(modsError){ modsError.style.display='block'; modsError.textContent = `Failed to load mods.json (tried ${candidates.join(', ')}). Last error: ${lastErr ? lastErr.message : 'unknown'}`; }
         }
 

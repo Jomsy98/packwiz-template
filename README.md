@@ -1,7 +1,5 @@
 # [Modpack Name]
 
-Welcome to the [Modpack Name] Packwiz template!
-
 ## Installation Instructions
 
 1. Download and install [Prism Launcher](https://prismlauncher.org/).
