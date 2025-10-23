@@ -3,6 +3,9 @@ name: Build and Release Prism Zip
 on:
   push:
     branches: ["main", "develop"]
+    paths:
+      - 'prism/**'
+      - 'server-icon.png'
   workflow_dispatch:
     inputs:
       dry_run:
