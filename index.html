@@ -79,16 +79,25 @@
             
             // Simple markdown-to-HTML conversion for changelog
             const lines = text.split('\n');
+            // Escape HTML special characters to prevent XSS
+            function escapeHtml(str) {
+              return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+            }
             let html = '';
             lines.forEach(line => {
               if(line.startsWith('# ')) {
-                html += `<h2>${line.substring(2)}</h2>`;
+                html += `<h2>${escapeHtml(line.substring(2))}</h2>`;
               } else if(line.startsWith('## ')) {
-                html += `<h3>${line.substring(3)}</h3>`;
+                html += `<h3>${escapeHtml(line.substring(3))}</h3>`;
               } else if(line.startsWith('### ')) {
-                html += `<h4>${line.substring(4)}</h4>`;
+                html += `<h4>${escapeHtml(line.substring(4))}</h4>`;
               } else if(line.trim()) {
-                html += `<p class="small">${line}</p>`;
+                html += `<p class="small">${escapeHtml(line)}</p>`;
               }
             });
             
