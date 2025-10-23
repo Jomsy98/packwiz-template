@@ -10,7 +10,7 @@ on:
       - 'styles.css'
       - 'server-icon.png'
       - 'packwiz/pack.toml'
-      - 'packwiz/mods/index.toml'
+      - 'CHANGELOG.md'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -48,7 +48,7 @@ jobs:
             styles.css
             server-icon.png
             packwiz/pack.toml
-            packwiz/mods/index.toml
+            CHANGELOG.md
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
