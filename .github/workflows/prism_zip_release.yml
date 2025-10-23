@@ -40,13 +40,21 @@ jobs:
             echo "No .env file found, using default values"
           fi
           
+          # Extract repository owner and name from GITHUB_REPOSITORY
+          REPO_OWNER="${GITHUB_REPOSITORY%/*}"
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          
           # Replace placeholders in prism/instance.cfg
           sed -i "s/\[Modpack Name\]/${MODPACK_NAME}/g" prism/instance.cfg
           sed -i "s/\[Modpack Description\]/${MODPACK_DESCRIPTION}/g" prism/instance.cfg
+          sed -i "s/\[REPO_OWNER\]/${REPO_OWNER}/g" prism/instance.cfg
+          sed -i "s/\[REPO_NAME\]/${REPO_NAME}/g" prism/instance.cfg
           
           echo "Replaced placeholders in prism/instance.cfg:"
           echo "  MODPACK_NAME=${MODPACK_NAME}"
           echo "  MODPACK_DESCRIPTION=${MODPACK_DESCRIPTION}"
+          echo "  REPO_OWNER=${REPO_OWNER}"
+          echo "  REPO_NAME=${REPO_NAME}"
         shell: bash
 
       - name: Determine dry-run mode
