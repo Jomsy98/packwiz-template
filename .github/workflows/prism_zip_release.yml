@@ -65,7 +65,7 @@ jobs:
           zip -r prism.zip prism
 
       - name: Upload prism.zip artifact (for dry-run inspection)
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: prism-zip
           path: prism.zip
