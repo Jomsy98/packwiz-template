@@ -1,4 +1,5 @@
 # [Modpack Name]
+[Modpack Description]
 
 ## Installation Instructions
 
@@ -8,4 +9,4 @@
 
 ## About
 
-Template designed for Packwiz Builder
+Template designed for [Packwiz Builder](https://packwizbuilder.com)

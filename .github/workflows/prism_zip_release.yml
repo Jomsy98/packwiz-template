@@ -6,6 +6,7 @@ on:
     paths:
       - 'prism/**'
       - 'server-icon.png'
+      - '.env'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -23,6 +24,30 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Replace placeholders in prism/instance.cfg
+        run: |
+          # Set default values
+          MODPACK_NAME="Modpack Template"
+          MODPACK_DESCRIPTION="This is a modpack template for PackwizBuilder!"
+          
+          # Check if .env file exists and source it
+          if [ -f .env ]; then
+            echo "Found .env file, loading variables..."
+            # Export variables from .env safely
+            set -a; source .env; set +a
+          else
+            echo "No .env file found, using default values"
+          fi
+          
+          # Replace placeholders in prism/instance.cfg
+          sed -i "s/\[Modpack Name\]/${MODPACK_NAME}/g" prism/instance.cfg
+          sed -i "s/\[Modpack Description\]/${MODPACK_DESCRIPTION}/g" prism/instance.cfg
+          
+          echo "Replaced placeholders in prism/instance.cfg:"
+          echo "  MODPACK_NAME=${MODPACK_NAME}"
+          echo "  MODPACK_DESCRIPTION=${MODPACK_DESCRIPTION}"
+        shell: bash
 
       - name: Determine dry-run mode
         id: determine_dry
@@ -96,7 +121,7 @@ jobs:
           fi
 
       - name: Delete existing release (if present)
-        if: env.DRY_RUN != 'true'
+        if: steps.determine_dry.outputs.dry_run != 'true'
         run: |
           gh release delete "${{ steps.get_version.outputs.version }}" --yes || true
         env:
@@ -104,7 +129,7 @@ jobs:
 
       - name: Create GitHub Release
         id: create_release
-        if: env.DRY_RUN != 'true'
+        if: steps.determine_dry.outputs.dry_run != 'true'
         uses: actions/create-release@v1
         with:
           tag_name: ${{ steps.get_version.outputs.version }}
@@ -115,7 +140,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Release Asset
-        if: env.DRY_RUN != 'true'
+        if: steps.determine_dry.outputs.dry_run != 'true'
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
