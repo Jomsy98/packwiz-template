@@ -42,13 +42,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          # Upload specified files
-          path: |
-            index.html
-            styles.css
-            server-icon.png
-            packwiz/pack.toml
-            CHANGELOG.md
+          # Upload entire repository root which contains all the files
+          path: '.'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
