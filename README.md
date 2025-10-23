@@ -1,5 +1,5 @@
-# [Modpack Name]
-[Modpack Description]
+# Modpack Template
+This is a modpack template for PackwizBuilder!
 
 ## Installation Instructions
 
