@@ -14,8 +14,8 @@ permissions:
 jobs:
   update-readme:
     runs-on: ubuntu-latest
-    # Only run this workflow in the template repository, not in forks/other repos
-    if: github.repository == 'Jomsy98/packwiz-template'
+    # Only run this workflow in forks/other repos, not in the template repository
+    if: github.repository != 'Jomsy98/packwiz-template'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
