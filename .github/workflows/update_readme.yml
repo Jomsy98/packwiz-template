@@ -31,7 +31,9 @@ jobs:
           if [ -f .env ]; then
             echo "Found .env file, loading variables..."
             # Export variables from .env
-            export $(grep -v '^#' .env | grep -v '^$' | xargs)
+            set -a
+            source .env
+            set +a
           else
             echo "No .env file found, using default values"
           fi
