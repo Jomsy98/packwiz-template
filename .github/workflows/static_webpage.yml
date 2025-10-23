@@ -11,6 +11,7 @@ on:
       - 'server-icon.png'
       - 'packwiz/pack.toml'
       - 'CHANGELOG.md'
+      - '.env'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -37,6 +38,31 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      
+      - name: Replace placeholders in index.html
+        run: |
+          # Set default values
+          MODPACK_NAME="Modpack Template"
+          MODPACK_DESCRIPTION="This is a modpack template for PackwizBuilder!"
+          
+          # Check if .env file exists and source it
+          if [ -f .env ]; then
+            echo "Found .env file, loading variables..."
+            # Export variables from .env
+            export $(grep -v '^#' .env | grep -v '^$' | xargs)
+          else
+            echo "No .env file found, using default values"
+          fi
+          
+          # Replace placeholders in index.html
+          sed -i "s/\[Modpack Name\]/${MODPACK_NAME}/g" index.html
+          sed -i "s/\[Modpack Description\]/${MODPACK_DESCRIPTION}/g" index.html
+          
+          echo "Replaced placeholders:"
+          echo "  MODPACK_NAME=${MODPACK_NAME}"
+          echo "  MODPACK_DESCRIPTION=${MODPACK_DESCRIPTION}"
+        shell: bash
+      
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

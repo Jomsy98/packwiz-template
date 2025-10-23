@@ -6,6 +6,7 @@ on:
     paths:
       - 'prism/**'
       - 'server-icon.png'
+      - '.env'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -23,6 +24,30 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Replace placeholders in prism/instance.cfg
+        run: |
+          # Set default values
+          MODPACK_NAME="Modpack Template"
+          MODPACK_DESCRIPTION="This is a modpack template for PackwizBuilder!"
+          
+          # Check if .env file exists and source it
+          if [ -f .env ]; then
+            echo "Found .env file, loading variables..."
+            # Export variables from .env
+            export $(grep -v '^#' .env | grep -v '^$' | xargs)
+          else
+            echo "No .env file found, using default values"
+          fi
+          
+          # Replace placeholders in prism/instance.cfg
+          sed -i "s/\[Modpack Name\]/${MODPACK_NAME}/g" prism/instance.cfg
+          sed -i "s/\[Modpack Description\]/${MODPACK_DESCRIPTION}/g" prism/instance.cfg
+          
+          echo "Replaced placeholders in prism/instance.cfg:"
+          echo "  MODPACK_NAME=${MODPACK_NAME}"
+          echo "  MODPACK_DESCRIPTION=${MODPACK_DESCRIPTION}"
+        shell: bash
 
       - name: Determine dry-run mode
         id: determine_dry
