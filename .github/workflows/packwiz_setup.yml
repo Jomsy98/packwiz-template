@@ -1,0 +1,82 @@
+name: Packwiz Refresh
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packwiz/**'
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    # Only run this workflow in forks/other repos, not in the template repository
+    if: github.repository != 'Jomsy98/packwiz-template'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Load .env or set defaults and replace pack.toml placeholders
+        run: |
+          # Default values
+          MODPACK_NAME="Unamed Modpack"
+          MODPACK_VERSION="1.0.0"
+
+          # Load .env if present
+          if [ -f .env ]; then
+            echo "Found .env file, loading variables..."
+            set -a; source .env; set +a
+          fi
+
+          # Fallbacks if variables are empty
+          if [ -z "${MODPACK_NAME}" ]; then
+            MODPACK_NAME="Unamed Modpack"
+          fi
+          if [ -z "${MODPACK_VERSION}" ]; then
+            MODPACK_VERSION="1.0.0"
+          fi
+
+          echo "Using MODPACK_NAME=${MODPACK_NAME}"
+          echo "Using MODPACK_VERSION=${MODPACK_VERSION}"
+
+          # Replace placeholders in packwiz/pack.toml (if exists)
+          if [ -f packwiz/pack.toml ]; then
+            sed -i "s|\[Modpack Name\]|${MODPACK_NAME}|g" packwiz/pack.toml
+            sed -i "s|\[Modpack Version\]|${MODPACK_VERSION}|g" packwiz/pack.toml
+            echo "Updated packwiz/pack.toml with name and version"
+          else
+            echo "packwiz/pack.toml not found; skipping replacement"
+          fi
+        shell: bash
+
+      - name: Get latest artifact ID
+        id: artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ARTIFACT_ID=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            repos/packwiz/packwiz/actions/artifacts \
+            --jq '.artifacts | map(select(.name == "Linux 64-bit x86")) | sort_by(.created_at) | reverse | .[0].id')
+          echo "artifact_id=$ARTIFACT_ID" >> $GITHUB_OUTPUT
+
+      - name: Download artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            repos/packwiz/packwiz/actions/artifacts/${{ steps.artifact.outputs.artifact_id }}/zip \
+            > packwiz-linux-x86.zip
+          unzip packwiz-linux-x86.zip -d packwiz-bin
+
+      - name: Make packwiz executable
+        run: |
+          chmod +x packwiz-bin/packwiz
+
+      - name: Run packwiz refresh
+        working-directory: packwiz
+        run: |
+          # Run packwiz from inside the packwiz directory so it operates on local files
+          ../packwiz-bin/packwiz refresh
