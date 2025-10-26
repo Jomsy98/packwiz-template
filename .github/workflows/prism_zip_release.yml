@@ -124,12 +124,39 @@ jobs:
             echo "server-icon.png not found in repo root; skipping copy"
           fi
 
-      - name: Get version from pack.toml
+      - name: Get version from .env
         id: get_version
         run: |
-          VERSION=$(grep '^version =' packwiz/pack.toml | head -n1 | cut -d'=' -f2 | tr -d ' "')
-          if [ -z "$VERSION" ]; then VERSION="0.0.0"; fi
+          # Safe function to load env files (handles quoted and unquoted values)
+          load_env() {
+            local env_file="$1"
+            if [ ! -f "$env_file" ]; then return; fi
+            
+            while IFS='=' read -r key value || [ -n "$key" ]; do
+              # Skip comments and empty lines
+              [[ "$key" =~ ^[[:space:]]*# ]] && continue
+              [[ -z "$key" ]] && continue
+              
+              # Trim whitespace from key
+              key=$(echo "$key" | xargs)
+              
+              # Remove quotes from value if present, otherwise keep as-is
+              value=$(echo "$value" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+              
+              # Export the variable
+              export "$key=$value"
+            done < "$env_file"
+          }
+          
+          # Load .env if it exists
+          if [ -f .env ]; then
+            load_env .env
+          fi
+          
+          # Use MODPACK_VERSION from .env, or default to 0.0.0
+          VERSION="${MODPACK_VERSION:-0.0.0}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Using version: $VERSION"
 
       - name: Determine zip filename
         id: zip_name
