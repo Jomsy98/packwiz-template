@@ -6,7 +6,11 @@ on:
       - main
     paths:
       - 'packwiz/**'
+      - '.env'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   refresh:
@@ -80,3 +84,20 @@ jobs:
         run: |
           # Run packwiz from inside the packwiz directory so it operates on local files
           ../packwiz-bin/packwiz refresh
+
+      - name: Commit packwiz changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Add the packwiz files
+          git add packwiz/index.toml packwiz/pack.toml
+          
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: refresh packwiz index and pack files"
+            git push
+            echo "Packwiz files updated and committed"
+          fi
