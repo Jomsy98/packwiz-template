@@ -16,7 +16,8 @@ jobs:
   refresh:
     runs-on: ubuntu-latest
     # Only run this workflow in forks/other repos, not in the template repository
-    if: github.repository != 'Jomsy98/packwiz-template'
+    # Skip if this is the initial commit from template
+    if: github.repository != 'Jomsy98/packwiz-template' && !contains(github.event.head_commit.message, 'Initial commit')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
