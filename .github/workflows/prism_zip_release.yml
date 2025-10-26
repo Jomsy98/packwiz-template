@@ -28,34 +28,68 @@ jobs:
 
       - name: Replace placeholders in prism/instance.cfg
         run: |
-          # Set default values
-          MODPACK_NAME="Modpack Template"
-          MODPACK_DESCRIPTION="This is a modpack template for PackwizBuilder!"
+          # Safe function to load env files (handles quoted and unquoted values)
+          load_env() {
+            local env_file="$1"
+            if [ ! -f "$env_file" ]; then return; fi
+            
+            while IFS='=' read -r key value || [ -n "$key" ]; do
+              # Skip comments and empty lines
+              [[ "$key" =~ ^[[:space:]]*# ]] && continue
+              [[ -z "$key" ]] && continue
+              
+              # Trim whitespace from key
+              key=$(echo "$key" | xargs)
+              
+              # Remove quotes from value if present, otherwise keep as-is
+              value=$(echo "$value" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+              
+              # Export the variable
+              export "$key=$value"
+            done < "$env_file"
+          }
           
-          # Check if .env file exists and source it
+          # Load .env if it exists, otherwise use .env.example
           if [ -f .env ]; then
-            echo "Found .env file, loading variables..."
-            # Export variables from .env safely
-            set -a; source .env; set +a
-          else
-            echo "No .env file found, using default values"
+            echo "📦 Loading variables from .env"
+            load_env .env
+          elif [ -f .env.example ]; then
+            echo "📦 Loading variables from .env.example (fallback)"
+            load_env .env.example
           fi
           
-          # Extract repository owner and name from GITHUB_REPOSITORY
+          # Set computed variables
           REPO_OWNER="${GITHUB_REPOSITORY%/*}"
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
           
-          # Replace placeholders in prism/instance.cfg
-          sed -i "s/\[Modpack Name\]/${MODPACK_NAME}/g" prism/instance.cfg
-          sed -i "s/\[Modpack Description\]/${MODPACK_DESCRIPTION}/g" prism/instance.cfg
-          sed -i "s/\[REPO_OWNER\]/${REPO_OWNER}/g" prism/instance.cfg
-          sed -i "s/\[REPO_NAME\]/${REPO_NAME}/g" prism/instance.cfg
+          export REPO_OWNER REPO_NAME
           
-          echo "Replaced placeholders in prism/instance.cfg:"
-          echo "  MODPACK_NAME=${MODPACK_NAME}"
-          echo "  MODPACK_DESCRIPTION=${MODPACK_DESCRIPTION}"
-          echo "  REPO_OWNER=${REPO_OWNER}"
-          echo "  REPO_NAME=${REPO_NAME}"
+          # Function to replace variables in a file
+          replace_vars() {
+            local file="$1"
+            if [ ! -f "$file" ]; then return; fi
+            
+            echo "  📝 Processing: $file"
+            
+            # Find all {{VARIABLE}} patterns and replace them
+            for var_pattern in $(grep -oP '\{\{[A-Z_]+\}\}' "$file" 2>/dev/null | sort -u || true); do
+              var_name="${var_pattern:2:-2}"  # Remove {{ and }}
+              var_value="${!var_name}"
+              
+              if [ -n "$var_value" ]; then
+                # Escape special characters for sed (/, &, \, newlines, and other special chars)
+                escaped_value=$(printf '%s\n' "$var_value" | sed -e 's/[\/&]/\\&/g' -e 's/$/\\n/' | tr -d '\n' | sed -e 's/\\n$//')
+                # Replace in file using | as delimiter to avoid conflicts with /
+                sed -i "s|{{${var_name}}}|${escaped_value}|g" "$file"
+                echo "    ✓ {{${var_name}}} = ${var_value}"
+              fi
+            done
+          }
+          
+          # Replace variables in prism/instance.cfg
+          replace_vars "prism/instance.cfg"
+          
+          echo "✅ All variables replaced"
         shell: bash
 
       - name: Determine dry-run mode
@@ -90,31 +124,69 @@ jobs:
             echo "server-icon.png not found in repo root; skipping copy"
           fi
 
-      - name: Get version from pack.toml
+      - name: Get version from .env
         id: get_version
         run: |
-          VERSION=$(grep '^version =' packwiz/pack.toml | head -n1 | cut -d'=' -f2 | tr -d ' "')
-          if [ -z "$VERSION" ]; then VERSION="0.0.0"; fi
+          # Safe function to load env files (handles quoted and unquoted values)
+          load_env() {
+            local env_file="$1"
+            if [ ! -f "$env_file" ]; then return; fi
+            
+            while IFS='=' read -r key value || [ -n "$key" ]; do
+              # Skip comments and empty lines
+              [[ "$key" =~ ^[[:space:]]*# ]] && continue
+              [[ -z "$key" ]] && continue
+              
+              # Trim whitespace from key
+              key=$(echo "$key" | xargs)
+              
+              # Remove quotes from value if present, otherwise keep as-is
+              value=$(echo "$value" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+              
+              # Export the variable
+              export "$key=$value"
+            done < "$env_file"
+          }
+          
+          # Load .env if it exists
+          if [ -f .env ]; then
+            load_env .env
+          fi
+          
+          # Use MODPACK_VERSION from .env, or default to 0.0.0
+          VERSION="${MODPACK_VERSION:-0.0.0}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Using version: $VERSION"
 
       - name: Determine zip filename
         id: zip_name
         run: |
-          # Set default modpack name
-          MODPACK_NAME="Unnamed_Modpack"
+          # Safe function to load env files (handles quoted and unquoted values)
+          load_env() {
+            local env_file="$1"
+            if [ ! -f "$env_file" ]; then return; fi
+            
+            while IFS='=' read -r key value || [ -n "$key" ]; do
+              # Skip comments and empty lines
+              [[ "$key" =~ ^[[:space:]]*# ]] && continue
+              [[ -z "$key" ]] && continue
+              
+              # Trim whitespace from key
+              key=$(echo "$key" | xargs)
+              
+              # Remove quotes from value if present, otherwise keep as-is
+              value=$(echo "$value" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+              
+              # Export the variable
+              export "$key=$value"
+            done < "$env_file"
+          }
           
-          # Check if .env file exists and source it
+          # Load .env if it exists, otherwise use .env.example
           if [ -f .env ]; then
-            echo "Found .env file, loading variables..."
-            set -a; source .env; set +a
-            # Check if MODPACK_NAME is set and not empty
-            if [ -n "$MODPACK_NAME" ]; then
-              echo "Using MODPACK_NAME from .env: $MODPACK_NAME"
-            else
-              MODPACK_NAME="Unnamed_Modpack"
-            fi
-          else
-            echo "No .env file found, using default name"
+            load_env .env
+          elif [ -f .env.example ]; then
+            load_env .env.example
           fi
           
           # Create filename (replace spaces with underscores)

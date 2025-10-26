@@ -1,5 +1,5 @@
-# [Modpack Name]
-[Modpack Description]
+### {{MODPACK_NAME}}
+# {{MODPACK_DESCRIPTION}}
 
 ## Installation Instructions
 
@@ -10,3 +10,4 @@
 ## About
 
 Template designed for [Packwiz Builder](https://packwizbuilder.com)
+
