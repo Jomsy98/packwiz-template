@@ -125,6 +125,10 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "chore: refresh packwiz index and pack files"
+            
+            # Pull latest changes before pushing in case other workflows committed
+            git pull --rebase origin main
+            
             git push
             echo "Packwiz files updated and committed"
           fi

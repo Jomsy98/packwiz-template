@@ -104,6 +104,10 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "chore: update README with modpack information from .env"
+            
+            # Pull latest changes before pushing in case other workflows committed
+            git pull --rebase origin main
+            
             git push
             echo "README.md updated and committed"
           fi
