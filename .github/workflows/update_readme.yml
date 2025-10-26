@@ -25,13 +25,34 @@ jobs:
       - name: Check for placeholders and update README
         id: update_readme
         run: |
+          # Safe function to load env files (handles quoted and unquoted values)
+          load_env() {
+            local env_file="$1"
+            if [ ! -f "$env_file" ]; then return; fi
+            
+            while IFS='=' read -r key value || [ -n "$key" ]; do
+              # Skip comments and empty lines
+              [[ "$key" =~ ^[[:space:]]*# ]] && continue
+              [[ -z "$key" ]] && continue
+              
+              # Trim whitespace from key
+              key=$(echo "$key" | xargs)
+              
+              # Remove quotes from value if present, otherwise keep as-is
+              value=$(echo "$value" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+              
+              # Export the variable
+              export "$key=$value"
+            done < "$env_file"
+          }
+          
           # Load .env if it exists, otherwise use .env.example
           if [ -f .env ]; then
             echo "📦 Loading variables from .env"
-            set -a; source .env; set +a
+            load_env .env
           elif [ -f .env.example ]; then
             echo "📦 Loading variables from .env.example (fallback)"
-            set -a; source .env.example; set +a
+            load_env .env.example
           fi
           
           # Check if README.md contains placeholders
