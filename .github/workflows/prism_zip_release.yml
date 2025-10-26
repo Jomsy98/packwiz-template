@@ -28,7 +28,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Replace placeholders in prism/instance.cfg
+      - name: Replace placeholders in prism/instance.cfg and prism/mmc-pack.json
         run: |
           # Safe function to load env files (handles quoted and unquoted values)
           load_env() {
@@ -64,7 +64,23 @@ jobs:
           REPO_OWNER="${GITHUB_REPOSITORY%/*}"
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
           
-          export REPO_OWNER REPO_NAME
+          # Map MODLOADER to MODLOADER_UID
+          case "${MODLOADER,,}" in
+            forge)
+              MODLOADER_UID="net.minecraftforge"
+              ;;
+            fabric)
+              MODLOADER_UID="net.fabricmc.fabric-loader"
+              ;;
+            neoforged)
+              MODLOADER_UID="net.neoforged"
+              ;;
+            *)
+              MODLOADER_UID="${MODLOADER}"
+              ;;
+          esac
+          
+          export REPO_OWNER REPO_NAME MODLOADER_UID
           
           # Function to replace variables in a file
           replace_vars() {
@@ -88,8 +104,9 @@ jobs:
             done
           }
           
-          # Replace variables in prism/instance.cfg
+          # Replace variables in prism files
           replace_vars "prism/instance.cfg"
+          replace_vars "prism/mmc-pack.json"
           
           echo "✅ All variables replaced"
         shell: bash
