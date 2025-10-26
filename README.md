@@ -1,5 +1,5 @@
-# [Modpack Name]
-[Modpack Description]
+### {{MODPACK_NAME}}
+#{{MODPACK_DESCRIPTION}}
 
 ## Installation Instructions
 

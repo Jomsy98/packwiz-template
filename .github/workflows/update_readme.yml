@@ -25,33 +25,46 @@ jobs:
       - name: Check for placeholders and update README
         id: update_readme
         run: |
-          # Set default values
-          MODPACK_NAME="Modpack Template"
-          MODPACK_DESCRIPTION="This is a modpack template for PackwizBuilder!"
-          
-          # Check if .env file exists and source it
+          # Load .env if it exists, otherwise use .env.example
           if [ -f .env ]; then
-            echo "Found .env file, loading variables..."
-            # Export variables from .env
-            set -a
-            source .env
-            set +a
-          else
-            echo "No .env file found, using default values"
+            echo "📦 Loading variables from .env"
+            set -a; source .env; set +a
+          elif [ -f .env.example ]; then
+            echo "📦 Loading variables from .env.example (fallback)"
+            set -a; source .env.example; set +a
           fi
           
           # Check if README.md contains placeholders
-          if grep -q "\[Modpack Name\]" README.md || grep -q "\[Modpack Description\]" README.md; then
+          if grep -q "{{MODPACK_NAME}}" README.md || grep -q "{{MODPACK_DESCRIPTION}}" README.md; then
             echo "Placeholders found in README.md"
             echo "has_placeholders=true" >> $GITHUB_OUTPUT
             
-            # Replace placeholders in README.md
-            sed -i "s/\[Modpack Name\]/${MODPACK_NAME}/g" README.md
-            sed -i "s/\[Modpack Description\]/${MODPACK_DESCRIPTION}/g" README.md
+            # Function to replace variables in a file
+            replace_vars() {
+              local file="$1"
+              if [ ! -f "$file" ]; then return; fi
+              
+              echo "  📝 Processing: $file"
+              
+              # Find all {{VARIABLE}} patterns and replace them
+              for var_pattern in $(grep -oP '\{\{[A-Z_]+\}\}' "$file" 2>/dev/null | sort -u || true); do
+                var_name="${var_pattern:2:-2}"  # Remove {{ and }}
+                var_value="${!var_name}"
+                
+                if [ -n "$var_value" ]; then
+                  # Escape special characters for sed (/, &, \, newlines, and other special chars)
+                  escaped_value=$(printf '%s\n' "$var_value" | sed -e 's/[\/&]/\\&/g' -e 's/$/\\n/' | tr -d '\n' | sed -e 's/\\n$//')
+                  # Replace in file using | as delimiter to avoid conflicts with /
+                  sed -i "s|{{${var_name}}}|${escaped_value}|g" "$file"
+                  echo "    ✓ {{${var_name}}} = ${var_value}"
+                fi
+              done
+            }
             
-            echo "Replaced placeholders in README.md:"
-            echo "  MODPACK_NAME=${MODPACK_NAME}"
-            echo "  MODPACK_DESCRIPTION=${MODPACK_DESCRIPTION}"
+            # Replace variables in README.md
+            replace_vars "README.md"
+            
+            echo "✅ All variables replaced"
           else
             echo "No placeholders found in README.md, nothing to update"
             echo "has_placeholders=false" >> $GITHUB_OUTPUT

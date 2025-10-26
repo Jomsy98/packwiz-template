@@ -23,53 +23,41 @@ jobs:
 
       - name: Load .env or set defaults and replace pack.toml placeholders
         run: |
-          # Default values
-          MODPACK_NAME="Unamed Modpack"
-          MODPACK_VERSION="1.0.0"
-          MINECRAFT_VERSION="1.20.1"
-          MODLOADER="fabric"
-          MODLOADER_VERSION="0.15.0"
-
-          # Load .env if present
+          # Load .env if it exists, otherwise use .env.example
           if [ -f .env ]; then
-            echo "Found .env file, loading variables..."
+            echo "📦 Loading variables from .env"
             set -a; source .env; set +a
+          elif [ -f .env.example ]; then
+            echo "📦 Loading variables from .env.example (fallback)"
+            set -a; source .env.example; set +a
           fi
-
-          # Fallbacks if variables are empty
-          if [ -z "${MODPACK_NAME}" ]; then
-            MODPACK_NAME="Unamed Modpack"
-          fi
-          if [ -z "${MODPACK_VERSION}" ]; then
-            MODPACK_VERSION="1.0.0"
-          fi
-          if [ -z "${MINECRAFT_VERSION}" ]; then
-            MINECRAFT_VERSION="1.20.0"
-          fi
-          if [ -z "${MODLOADER}" ]; then
-            MODLOADER="neoforge"
-          fi
-          if [ -z "${MODLOADER_VERSION}" ]; then
-            MODLOADER_VERSION="21.10.33-beta"
-          fi
-
-          echo "Using MODPACK_NAME=${MODPACK_NAME}"
-          echo "Using MODPACK_VERSION=${MODPACK_VERSION}"
-          echo "Using MINECRAFT_VERSION=${MINECRAFT_VERSION}"
-          echo "Using MODLOADER=${MODLOADER}"
-          echo "Using MODLOADER_VERSION=${MODLOADER_VERSION}"
-
-          # Replace placeholders in packwiz/pack.toml (if exists)
-          if [ -f packwiz/pack.toml ]; then
-            sed -i "s|\[Modpack Name\]|${MODPACK_NAME}|g" packwiz/pack.toml
-            sed -i "s|\[Modpack Version\]|${MODPACK_VERSION}|g" packwiz/pack.toml
-            sed -i "s|\[Minecraft Version\]|${MINECRAFT_VERSION}|g" packwiz/pack.toml
-            sed -i "s|\[Modloader\]|${MODLOADER}|g" packwiz/pack.toml
-            sed -i "s|\[Modloader Version\]|${MODLOADER_VERSION}|g" packwiz/pack.toml
-            echo "Updated packwiz/pack.toml with name, version, minecraft version, modloader, and modloader version"
-          else
-            echo "packwiz/pack.toml not found; skipping replacement"
-          fi
+          
+          # Function to replace variables in a file
+          replace_vars() {
+            local file="$1"
+            if [ ! -f "$file" ]; then return; fi
+            
+            echo "  📝 Processing: $file"
+            
+            # Find all {{VARIABLE}} patterns and replace them
+            for var_pattern in $(grep -oP '\{\{[A-Z_]+\}\}' "$file" 2>/dev/null | sort -u || true); do
+              var_name="${var_pattern:2:-2}"  # Remove {{ and }}
+              var_value="${!var_name}"
+              
+              if [ -n "$var_value" ]; then
+                # Escape special characters for sed (/, &, \, newlines, and other special chars)
+                escaped_value=$(printf '%s\n' "$var_value" | sed -e 's/[\/&]/\\&/g' -e 's/$/\\n/' | tr -d '\n' | sed -e 's/\\n$//')
+                # Replace in file using | as delimiter to avoid conflicts with /
+                sed -i "s|{{${var_name}}}|${escaped_value}|g" "$file"
+                echo "    ✓ {{${var_name}}} = ${var_value}"
+              fi
+            done
+          }
+          
+          # Replace variables in packwiz/pack.toml
+          replace_vars "packwiz/pack.toml"
+          
+          echo "✅ All variables replaced"
         shell: bash
 
       - name: Get latest artifact ID

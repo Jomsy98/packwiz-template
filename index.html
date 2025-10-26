@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>[Modpack Name]</title>
-    <meta name="description" content="[Modpack Description]" />
+    <title>{{MODPACK_NAME}}</title>
+    <meta name="description" content="{{MODPACK_DESCRIPTION}}" />
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body>
@@ -14,8 +14,8 @@
           <img id="logoImg" alt="modpack logo" src="./server-icon.png" onerror="this.onerror=null;this.src='prism/modpack.png'" />
         </div>
         <div>
-          <h1 id="packName">[Modpack Name]</h1>
-          <p class="lead">[Modpack Description]</p>
+          <h1 id="packName">{{MODPACK_NAME}}</h1>
+          <p class="lead">{{MODPACK_DESCRIPTION}}</p>
         </div>
       </header>
 
@@ -31,7 +31,7 @@
               <li>Launch the modpack and enjoy!</li>
             </ol>
             <div style="margin-top:12px">
-              <a class="btn" id="downloadBtn" href="[DOWNLOAD_URL]">Download Pack ([ZIP_FILENAME])</a>
+              <a class="btn" id="downloadBtn" href="{{DOWNLOAD_URL}}">Download Pack ({{ZIP_FILENAME}})</a>
             </div>
           </section>
         </main>
