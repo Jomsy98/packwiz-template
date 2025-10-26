@@ -1,5 +1,5 @@
-### {{MODPACK_NAME}}
-# {{MODPACK_DESCRIPTION}}
+# {{MODPACK_NAME}}
+{{MODPACK_DESCRIPTION}}
 
 ## Installation Instructions
 
