@@ -6,3 +6,7 @@
 
 # Exclude Packwiz executable
 packwiz.exe
+
+# Exclude environment variable files
+.env*
+.dev.vars*

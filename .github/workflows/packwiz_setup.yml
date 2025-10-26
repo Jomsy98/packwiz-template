@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'packwiz/**'
-      - '.env'
+      - 'pwbuilder.json'
   workflow_dispatch:
 
 permissions:
@@ -27,37 +27,30 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Load .env or set defaults and replace pack.toml placeholders
+      - name: Load variables from pwbuilder.json and replace pack.toml placeholders
         run: |
-          # Safe function to load env files (handles quoted and unquoted values)
-          load_env() {
-            local env_file="$1"
-            if [ ! -f "$env_file" ]; then return; fi
-            
-            while IFS='=' read -r key value || [ -n "$key" ]; do
-              # Skip comments and empty lines
-              [[ "$key" =~ ^[[:space:]]*# ]] && continue
-              [[ -z "$key" ]] && continue
-              
-              # Trim whitespace from key
-              key=$(echo "$key" | xargs)
-              
-              # Remove quotes from value if present, otherwise keep as-is
-              value=$(echo "$value" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
-              
-              # Export the variable
-              export "$key=$value"
-            done < "$env_file"
-          }
-          
-          # Load .env if it exists, otherwise use .env.example
-          if [ -f .env ]; then
-            echo "📦 Loading variables from .env"
-            load_env .env
-          elif [ -f .env.example ]; then
-            echo "📦 Loading variables from .env.example (fallback)"
-            load_env .env.example
+          # Check if pwbuilder.json exists
+          if [ ! -f pwbuilder.json ]; then
+            echo "❌ pwbuilder.json not found"
+            exit 1
           fi
+          
+          # Parse JSON and export variables
+          MODPACK_NAME=$(jq -r '.modpack.name' pwbuilder.json)
+          MODPACK_VERSION=$(jq -r '.modpack.version' pwbuilder.json)
+          MODPACK_DESCRIPTION=$(jq -r '.modpack.description' pwbuilder.json)
+          MINECRAFT_VERSION=$(jq -r '.modpack.minecraft.version' pwbuilder.json)
+          MODLOADER=$(jq -r '.modpack.modLoader.type' pwbuilder.json)
+          MODLOADER_VERSION=$(jq -r '.modpack.modLoader.version' pwbuilder.json)
+          
+          export MODPACK_NAME MODPACK_VERSION MODPACK_DESCRIPTION MINECRAFT_VERSION MODLOADER MODLOADER_VERSION
+          
+          echo "📦 Loaded variables from pwbuilder.json"
+          echo "  MODPACK_NAME: $MODPACK_NAME"
+          echo "  MODPACK_VERSION: $MODPACK_VERSION"
+          echo "  MINECRAFT_VERSION: $MINECRAFT_VERSION"
+          echo "  MODLOADER: $MODLOADER"
+          echo "  MODLOADER_VERSION: $MODLOADER_VERSION"
           
           # Function to replace variables in a file
           replace_vars() {
