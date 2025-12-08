@@ -127,6 +127,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: main
+      
+      - name: Pull latest changes from update-variables job
+        run: |
+          git pull origin main
 
       - name: Get latest artifact ID
         id: artifact
