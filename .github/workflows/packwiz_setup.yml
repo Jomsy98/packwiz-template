@@ -1,4 +1,4 @@
-name: Packwiz Refresh
+name: Packwiz Setup
 
 on:
   push:
@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  refresh:
+  update-variables:
     runs-on: ubuntu-latest
     # Only run this workflow in forks/other repos, not in the template repository
     # Skip if this is the initial commit from template
@@ -79,6 +79,37 @@ jobs:
           
           echo "✅ All variables replaced"
         shell: bash
+
+      - name: Commit variable changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Add the packwiz files
+          git add packwiz/pack.toml
+          
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: update pack.toml variables from pwbuilder.json"
+            
+            # Pull latest changes before pushing in case other workflows committed
+            git pull --rebase origin main
+            
+            git push
+            echo "Variables updated and committed"
+          fi
+
+  refresh:
+    runs-on: ubuntu-latest
+    needs: update-variables
+    # Only run this workflow in forks/other repos, not in the template repository
+    # Skip if this is the initial commit from template
+    if: github.repository != 'Jomsy98/packwiz-template' && !contains(github.event.head_commit.message, 'Initial commit')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Get latest artifact ID
         id: artifact
