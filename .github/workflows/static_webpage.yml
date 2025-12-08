@@ -2,7 +2,17 @@
 name: Deploy static content to Pages
 
 on:
-  # Runs on pushes targeting the default branch
+  # Wait for other workflows to complete before deploying
+  workflow_run:
+    workflows: 
+      - "Packwiz Refresh"
+      - "Update README with Environment Variables"
+      - "Build and Release Prism Zip"
+    types:
+      - completed
+    branches: ["main"]
+  
+  # Also trigger on direct pushes to specific files that don't trigger other workflows
   push:
     branches: ["main"]
     paths:
@@ -33,7 +43,12 @@ jobs:
   # Single deploy job since we're just deploying
   deploy:
     # Skip if this is the initial commit from template
-    if: ${{ !contains(github.event.head_commit.message, 'Initial commit') }}
+    # Also only run if prerequisite workflows completed successfully (or if triggered manually/by direct file changes)
+    if: |
+      !contains(github.event.head_commit.message, 'Initial commit') && 
+      (github.event_name == 'workflow_dispatch' || 
+       github.event_name == 'push' || 
+       github.event.workflow_run.conclusion == 'success')
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
