@@ -5,7 +5,7 @@ on:
   # Wait for other workflows to complete before deploying
   workflow_run:
     workflows: 
-      - "Packwiz Refresh"
+      - "Packwiz Setup"
       - "Update README with Environment Variables"
       - "Build and Release Prism Zip"
     types:
