@@ -27,7 +27,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Load variables from pwbuilder.json and replace pack.toml placeholders
+      - name: Load variables from pwbuilder.json and update pack.toml
         run: |
           # Check if pwbuilder.json exists
           if [ ! -f pwbuilder.json ]; then
@@ -52,32 +52,49 @@ jobs:
           echo "  MODLOADER: $MODLOADER"
           echo "  MODLOADER_VERSION: $MODLOADER_VERSION"
           
-          # Function to replace variables in a file
-          replace_vars() {
-            local file="$1"
+          # Function to update pack.toml values
+          update_pack_toml() {
+            local file="packwiz/pack.toml"
             if [ ! -f "$file" ]; then return; fi
             
             echo "  📝 Processing: $file"
             
-            # Find all {{VARIABLE}} patterns and replace them
-            for var_pattern in $(grep -oP '\{\{[A-Z_]+\}\}' "$file" 2>/dev/null | sort -u || true); do
-              var_name="${var_pattern:2:-2}"  # Remove {{ and }}
-              var_value="${!var_name}"
+            # Update name field (only at the top level, before [index])
+            if grep -q '^name = ' "$file"; then
+              escaped_name=$(printf '%s\n' "$MODPACK_NAME" | sed -e 's/[\/&]/\\&/g')
+              sed -i "0,/^name = .*/s|^name = .*|name = \"$escaped_name\"|" "$file"
+              echo "    ✓ name = $MODPACK_NAME"
+            fi
+            
+            # Update version field (only at the top level, before [index])
+            if grep -q '^version = ' "$file"; then
+              sed -i "0,/^version = .*/s|^version = .*|version = \"$MODPACK_VERSION\"|" "$file"
+              echo "    ✓ version = $MODPACK_VERSION"
+            fi
+            
+            # Update modloader type and version dynamically
+            MODLOADER_LOWER=$(echo "$MODLOADER" | tr '[:upper:]' '[:lower:]')
+            
+            # Check if we're in the [versions] section and update minecraft version and modloader
+            if grep -q '^\[versions\]' "$file"; then
+              # Update minecraft version (only in [versions] section)
+              sed -i '/^\[versions\]/,/^\[/ { /^minecraft = /s|^minecraft = .*|minecraft = "'"$MINECRAFT_VERSION"'"|; }' "$file"
+              echo "    ✓ minecraft = $MINECRAFT_VERSION"
               
-              if [ -n "$var_value" ]; then
-                # Escape special characters for sed (/, &, \, newlines, and other special chars)
-                escaped_value=$(printf '%s\n' "$var_value" | sed -e 's/[\/&]/\\&/g' -e 's/$/\\n/' | tr -d '\n' | sed -e 's/\\n$//')
-                # Replace in file using | as delimiter to avoid conflicts with /
-                sed -i "s|{{${var_name}}}|${escaped_value}|g" "$file"
-                echo "    ✓ {{${var_name}}} = ${var_value}"
-              fi
-            done
+              # Remove old modloader lines including placeholders
+              sed -i '/^\[versions\]/,/^\[/ { /^forge = /d; /^fabric = /d; /^neoforge = /d; /^quilt = /d; /^{{MODLOADER}} = /d; }' "$file"
+              
+              # Add the new modloader line after minecraft line in [versions] section
+              escaped_version=$(printf '%s\n' "$MODLOADER_VERSION" | sed -e 's/[\/&]/\\&/g')
+              sed -i "/^\[versions\]/,/^\[/ s|^\(minecraft = .*\)$|\1\n$MODLOADER_LOWER = \"$escaped_version\"|" "$file"
+              echo "    ✓ $MODLOADER_LOWER = $MODLOADER_VERSION"
+            fi
           }
           
-          # Replace variables in packwiz/pack.toml
-          replace_vars "packwiz/pack.toml"
+          # Update pack.toml
+          update_pack_toml
           
-          echo "✅ All variables replaced"
+          echo "✅ All variables updated"
         shell: bash
 
       - name: Commit variable changes
