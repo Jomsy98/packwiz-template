@@ -37,11 +37,11 @@
         </main>
 
         <aside>
-          <div id="changelogCard" class="card mods-card-extended">
-            <div id="changelogContent" class="mods-list">
-              <p class="small">Loading...</p>
+          <div id="modsCard" class="card mods-card-extended">
+            <h2>Installed Mods</h2>
+            <div id="modsList" class="mods-list">
+              <p class="small">Loading mods...</p>
             </div>
-            <div style="margin-top:8px"></div>
           </div>
         </aside>
       </div>
@@ -49,47 +49,62 @@
     </div>
 
     <script>
-      (function(){
-        // Load CHANGELOG.md from root
-        async function loadChangelog(){
-          const content = document.getElementById('changelogContent');
-          try{
-            const res = await fetch('./CHANGELOG.md');
-            if(!res.ok) throw new Error(`HTTP ${res.status}`);
-            const text = await res.text();
-            
-            // Simple markdown-to-HTML conversion for changelog
-            const lines = text.split('\n');
-            // Escape HTML special characters to prevent XSS
-            function escapeHtml(str) {
-              return str
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#39;");
-            }
-            let html = '';
-            lines.forEach(line => {
-              if(line.startsWith('# ')) {
-                html += `<h2>${escapeHtml(line.substring(2))}</h2>`;
-              } else if(line.startsWith('## ')) {
-                html += `<h3>${escapeHtml(line.substring(3))}</h3>`;
-              } else if(line.startsWith('### ')) {
-                html += `<h4>${escapeHtml(line.substring(4))}</h4>`;
-              } else if(line.trim()) {
-                html += `<p class="small">${escapeHtml(line)}</p>`;
-              }
-            });
-            
-            content.innerHTML = html || '<p class="small">No changelog content available.</p>';
-          }catch(e){
-            content.innerHTML = '<p class="small">Unable to load changelog.</p>';
-            console.error('Failed to load CHANGELOG.md:', e);
+      (async function(){
+        const listEl = document.getElementById('modsList');
+        try {
+          const res = await fetch('./pwbuilder.json');
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          const mods = Array.isArray(data?.mods) ? data.mods : [];
+
+          if (mods.length === 0) {
+            listEl.innerHTML = '<p class="small">No mods listed yet.</p>';
+            return;
           }
+
+          const ul = document.createElement('ul');
+          mods.forEach(mod => {
+            const li = document.createElement('li');
+            const name = sanitize(mod?.name ?? mod?.slug ?? mod?.id ?? 'Unknown Mod');
+            const author = sanitize(mod?.author ?? 'Unknown');
+            const version = sanitize(mod?.version ?? '');
+            const desc = sanitize(mod?.description ?? '');
+            const iconUrl = typeof mod?.iconUrl === 'string' ? mod.iconUrl : '';
+            const source = mod?.source;
+            const slug = mod?.slug;
+
+            let link = '';
+            if (source === 'curseforge' && slug) {
+              link = `https://www.curseforge.com/minecraft/mc-mods/${encodeURIComponent(slug)}`;
+            }
+
+            li.innerHTML = `
+              <div style="display:flex;align-items:center;gap:10px">
+                ${iconUrl ? `<img src="${encodeURI(iconUrl)}" alt="" style="width:28px;height:28px;border-radius:6px;object-fit:cover">` : ''}
+                <div>
+                  <strong>${name}</strong> ${version ? `<span class="meta">v${version}</span>` : ''}
+                  <div class="meta">by ${author}${desc ? ` — ${desc}` : ''}</div>
+                  ${link ? `<div class="small"><a href="${link}" style="color:var(--accent);text-decoration:none">CurseForge</a></div>` : ''}
+                </div>
+              </div>`;
+            ul.appendChild(li);
+          });
+
+          listEl.innerHTML = '';
+          listEl.appendChild(ul);
+        } catch (e) {
+          listEl.innerHTML = '<p class="small">Unable to load mods list.</p>';
+          console.error('Failed to load pwbuilder.json:', e);
         }
 
-        loadChangelog();
+        function sanitize(str){
+          return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+        }
       })();
     </script>
   </body>
